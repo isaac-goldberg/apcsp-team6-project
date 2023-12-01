@@ -2,7 +2,7 @@ import turtle as trtl
 from math import sin, cos, radians
 
 # constants
-SUN_RADIUS = 50
+SUN_RADIUS = 30
 MAX_ORBITS = 100
 
 # prompt the user for an animation speed,
@@ -42,24 +42,27 @@ sun.begin_fill() # this will fill in the circle, instead of just being an outlin
 sun.circle(radius=SUN_RADIUS, steps=64)
 sun.end_fill()
 
-# planet name, turtle object, color, distance from sun, size, speed, moons list
+# planet name, turtle object, color, distance from sun, size, speed, moons list, enabled
 # for each moon: turtle object, distance from planet, size, speed
 planets = [
-    ["mercury", None, "#824a42", 80, 0.6, 3.5, []],
-    ["venus", None, "red", 120, 1.4, 1.5, []],
-    ["earth", None, "green", 175, 2, 1, [[None, 40, 0.75, 3]]],
-    ["mars", None, "orange", 275, 1.2, 0.5, [[None, 30, 0.8, 4], [None, 50, 0.6, 2]]]
+    ["mercury", None, "#824a42", 50, 0.6, 2.75, []],
+    ["venus", None, "red", 85, 1.4, 1.25, []],
+    ["earth", None, "green", 145, 1.75, 0.75, [[None, 40, 0.6, 3]]],
+    ["mars", None, "orange", 200, 1.2, 0.5, [[None, 30, 0.6, 4], [None, 50, 0.4, 2]]],
+    ["jupiter", None, "#c7a06d", 260, 2.75, 0.25, [[None, 35, 0.2, 0.7], [None, 45, 0.3, -1], [None, 55, 0.4, 1.25]]],
+    ["neptune", None, "blue", 325, 0.8, 0.1, []]
 ]
 
 # initialize the turtle objects for each planet
 for planet in planets:
     p = trtl.Turtle(shape="circle")
     p.hideturtle()
-    p.speed(0)
+    p.speed(-100)
     p.penup()
     p.shapesize(planet[4])
     p.color(planet[2])
     planet[1] = p
+    planet.append(True)
 
     # initialize the turtle objects for each moon
     for moon in planet[6]:
@@ -71,9 +74,43 @@ for planet in planets:
         m.color("gray")
         moon[0] = m
 
+
+# allow user to change simulation speed using arrow keys
+screen.listen()
+def writespeed():
+    writer.clear()
+    writer.write(f"Speed: {simulation_speed}", align="center", font=("Arial", 18, "normal"))
+def speedup():
+    global simulation_speed
+    simulation_speed += 1
+    writespeed()
+def slowdown():
+    global simulation_speed
+    simulation_speed -= 1
+    writespeed()
+screen.onkey(speedup, "Up")
+screen.onkey(slowdown, "Down")
+
+def toggle_planet(n):
+    print("got here", n)
+    if planets[n][7]:
+        planets[n][7] = False
+        planets[n][1].hideturtle()
+        for moon in planets[n][6]:
+            moon[0].hideturtle()
+    else:
+        planets[n][7] = True
+        planets[n][1].showturtle()
+        for moon in planets[n][6]:
+            moon[0].showturtle()
+
+# allow user to enable/disable planets
+for n in range(len(planets)):
+    screen.onkey(lambda: toggle_planet(n), str(n + 1))
+
 # main loop that will go until we have orbited MAX_ORBITS times
 for i in range(360 * MAX_ORBITS):
-    angle = i * simulation_speed # changes the speed of the objects
+    angle = (i % 360) * simulation_speed # changes the speed of the objects
 
     # for each planet, move to position calculated from current angle, with the sun as the center
     # using trig functions (FYI, python math only accepts radians, not degrees)
@@ -96,7 +133,7 @@ for i in range(360 * MAX_ORBITS):
             planet[1].showturtle()
     # also delete the loading text if this is the first iteration
     if i == 0:
-        writer.clear()
+        writespeed()
 
 # start screen updates
 screen.mainloop()
