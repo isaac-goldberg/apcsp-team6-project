@@ -45,12 +45,12 @@ sun.end_fill()
 # planet name, turtle object, color, distance from sun, size, speed, moons list, enabled
 # for each moon: turtle object, distance from planet, size, speed
 planets = [
-    ["mercury", None, "#824a42", 50, 0.6, 2.75, []],
-    ["venus", None, "red", 85, 1.4, 1.25, []],
-    ["earth", None, "green", 145, 1.75, 0.75, [[None, 40, 0.6, 3]]],
-    ["mars", None, "orange", 200, 1.2, 0.5, [[None, 30, 0.6, 4], [None, 50, 0.4, 2]]],
-    ["jupiter", None, "#c7a06d", 260, 2.75, 0.25, [[None, 35, 0.2, 0.7], [None, 45, 0.3, -1], [None, 55, 0.4, 1.25]]],
-    ["neptune", None, "blue", 325, 0.8, 0.1, []]
+    ["Mercury", None, "#824a42", 50, 0.6, 2.75, []],
+    ["Venus", None, "red", 85, 1.4, 1.25, []],
+    ["Earth", None, "green", 145, 1.75, 0.75, [[None, 30, 0.6, 3]]],
+    ["Mars", None, "orange", 200, 1.2, 0.5, [[None, 25, 0.5, 4], [None, 40, 0.4, 2]]],
+    ["Jupiter", None, "#c7a06d", 270, 2.75, 0.25, [[None, 35, 0.2, 0.7], [None, 45, 0.3, -1], [None, 55, 0.4, 1.25]]],
+    ["Neptune", None, "blue", 325, 0.8, 0.1, []]
 ]
 
 # initialize the turtle objects for each planet
@@ -77,40 +77,111 @@ for planet in planets:
 
 # allow user to change simulation speed using arrow keys
 screen.listen()
-def writespeed():
-    writer.clear()
-    writer.write(f"Speed: {simulation_speed}", align="center", font=("Arial", 18, "normal"))
+
+def custom_speed():
+    global simulation_speed
+    custom = trtl.textinput("Custom Speed", "Enter an integer:")
+    while type(custom) is not int:
+        try:
+            custom = int(custom)
+            simulation_speed = custom
+            write_status()
+        except:
+            custom = trtl.textinput("Custom Speed", "Not a valid integer, try again:")
+            if custom is None:
+                break
+    screen.listen()
+screen.onkey(custom_speed, "Return")
+
+ctrl = False
+def ctrl_down():
+    global ctrl
+    ctrl = True
+def ctrl_up():
+    global ctrl
+    ctrl = False
+screen.onkeypress(ctrl_down, "Control_L")
+screen.onkeyrelease(ctrl_up, "Control_L")
+
+def write_speed(w=False):
+    writer.penup()
+    writer.color("gold")
+    writer.goto(-500, 0)
+    writer.pendown()
+    if not w:
+        writer.clear()
+    writer.write(f"Speed: {simulation_speed}x", align="left", font=("Arial", 12, "normal"))
+    if not w:
+        write_status(True)
 def speedup():
-    global simulation_speed
-    simulation_speed += 1
-    writespeed()
+    global simulation_speed, writing_status
+    if writing_status:
+        return
+    writing_status = True
+    simulation_speed += 1 * (10 if ctrl else 1)
+    write_speed()
 def slowdown():
-    global simulation_speed
-    simulation_speed -= 1
-    writespeed()
+    global simulation_speed, writing_status
+    if writing_status:
+        return
+    writing_status = True
+    simulation_speed -= 1 * (10 if ctrl else 1)
+    write_speed()
 screen.onkey(speedup, "Up")
 screen.onkey(slowdown, "Down")
 
-def toggle_planet(n):
-    print("got here", n)
-    if planets[n][7]:
-        planets[n][7] = False
-        planets[n][1].hideturtle()
-        for moon in planets[n][6]:
-            moon[0].hideturtle()
-    else:
-        planets[n][7] = True
-        planets[n][1].showturtle()
-        for moon in planets[n][6]:
-            moon[0].showturtle()
+writing_status = False
+def write_status(w=False):
+    global writing_status
+
+    writer.penup()
+    if not w:
+        writer.clear()
+    for i in range(len(planets)):
+        planet = planets[i]
+
+        writer.penup()
+        writer.goto(-500, 150 - (i * 20), )
+        writer.pendown()
+        font = ("Arial", 12, "normal")
+        if planet[7]:
+            writer.color("green")
+            writer.write(f"{planet[0]} [{str(i + 1)}]: On", align="left", font=font)
+        else:
+            writer.color("red")
+            writer.write(f"{planet[0]} [{str(i + 1)}]: Off", align="left", font=font)
+    if not w:
+        write_speed(True)
+    writing_status = False
+
+def add_listener(n):
+    def toggle():
+        global writing_status
+        if writing_status:
+            return
+        if planets[n][7]:
+            planets[n][7] = False
+            planets[n][1].hideturtle()
+            for moon in planets[n][6]:
+                moon[0].hideturtle()
+        else:
+            planets[n][7] = True
+            planets[n][1].showturtle()
+            for moon in planets[n][6]:
+                moon[0].showturtle()
+        
+        writing_status = True
+        write_status()
+
+    screen.onkey(toggle, str(n + 1))
 
 # allow user to enable/disable planets
 for n in range(len(planets)):
-    screen.onkey(lambda: toggle_planet(n), str(n + 1))
+    add_listener(n)
 
 # main loop that will go until we have orbited MAX_ORBITS times
 for i in range(360 * MAX_ORBITS):
-    angle = (i % 360) * simulation_speed # changes the speed of the objects
+    angle = i * simulation_speed # changes the speed of the objects
 
     # for each planet, move to position calculated from current angle, with the sun as the center
     # using trig functions (FYI, python math only accepts radians, not degrees)
@@ -133,7 +204,8 @@ for i in range(360 * MAX_ORBITS):
             planet[1].showturtle()
     # also delete the loading text if this is the first iteration
     if i == 0:
-        writespeed()
+        writer.clear()
+        write_status()
 
 # start screen updates
 screen.mainloop()
