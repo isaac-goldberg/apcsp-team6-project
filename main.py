@@ -321,7 +321,7 @@ while True:
         break
 
     if asteroid_enabled:
-        asteroid.forward(5 + min(max(simulation_speed, 0), 8))
+        asteroid.forward(5)
     if supernova_forming:
         time_since_supernova += 1
     i += 1
