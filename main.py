@@ -1,7 +1,6 @@
 import turtle as trtl
 from math import sin, cos, radians
 import os
-import time
 
 # constants
 SUN_RADIUS = 30
