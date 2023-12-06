@@ -1,9 +1,13 @@
 import turtle as trtl
 from math import sin, cos, radians
+import os
 
 # constants
 SUN_RADIUS = 30
 MAX_ORBITS = 100
+
+# globals
+simulation_running = False
 
 # prompt the user for an animation speed,
 # and keep asking them until they give a valid integer input
@@ -19,6 +23,9 @@ while type(simulation_speed) is not int:
 screen = trtl.Screen()
 screen.bgcolor("black")
 
+########################################################
+# TURTLE INITIALIZATION
+########################################################
 # turtle that will write the loading screen text
 writer = trtl.Turtle()
 writer.speed(0)
@@ -31,16 +38,12 @@ writer.write("Loading...", align="center", font=("Arial", 24, "normal"))
 
 # initialize sun turtle,
 # and draw the sun so that its center is in the exact center of the screen
-sun = trtl.Turtle()
-sun.hideturtle()
+trtl.register_shape("images/sun.gif")
+sun = trtl.Turtle(shape="images/sun.gif")
 sun.speed(0)
 sun.color("yellow")
 sun.penup()
-sun.goto(0, -SUN_RADIUS)
-sun.pendown()
-sun.begin_fill() # this will fill in the circle, instead of just being an outline
-sun.circle(radius=SUN_RADIUS, steps=64)
-sun.end_fill()
+sun.shapesize(3)
 
 # planet name, turtle object, color, distance from sun, size, speed, moons list, enabled
 # for each moon: turtle object, distance from planet, size, speed
@@ -64,7 +67,7 @@ for planet in planets:
     planet[1] = p
     planet.append(True)
 
-    # initialize the turtle objects for each moon
+    # initialize the turtle objects for each moon of the planet
     for moon in planet[6]:
         m = trtl.Turtle(shape="circle")
         m.hideturtle()
@@ -75,11 +78,77 @@ for planet in planets:
         moon[0] = m
 
 
-# allow user to change simulation speed using arrow keys
+# create asteroid
+asteroid_gravity_radius = 60
+asteroid_enabled = False
+caught_planets = []
+
+trtl.register_shape("images/asteroid.gif")
+asteroid = trtl.Turtle(shape = "images/asteroid.gif")
+asteroid.hideturtle()
+asteroid.speed(0)
+asteroid.penup()
+asteroid.goto(250,250)
+asteroid.setheading(225)
+########################################################
+
+
+
+########################################################
+# TEXT-WRITING UTILS
+########################################################
+# write the status of each planet on the screen
+writing_status = False
+def write_status(w=False):
+    global writing_status
+
+    writer.penup()
+    if not w:
+        writer.clear()
+    for i in range(len(planets)):
+        planet = planets[i]
+
+        writer.penup()
+        writer.goto(-500, 150 - (i * 20))
+        writer.pendown()
+        font = ("Arial", 14, "normal")
+        if planet[7]:
+            writer.color("green")
+            writer.write(f"{planet[0]} [{str(i + 1)}]: On", align="left", font=font)
+        else:
+            writer.color("red")
+            info = f" - caught in asteroid's gravity!" if planet[0] in caught_planets else ""
+            writer.write(f"{planet[0]} [{str(i + 1)}]: Off{info}", align="left", font=font)
+    if not w:
+        write_speed(True)
+    writing_status = False
+
+# write the speed of each planet on the screen
+def write_speed(w=False):
+    writer.penup()
+    writer.color("gold")
+    writer.goto(-500, 0)
+    writer.pendown()
+    if not w:
+        writer.clear()
+    writer.write(f"Speed: {simulation_speed}x", align="left", font=("Arial", 14, "normal"))
+    if not w:
+        write_status(True)
+########################################################
+
+
+
+########################################################
+# KEYBINDS TO MODIFY SIMULATION
+########################################################
+# function to listen to key presses in the turtle window
 screen.listen()
 
+# allow custom speed when they press the enter button
 def custom_speed():
     global simulation_speed
+    # prompt the user for a simulation speed, and keep asking
+    # until they give a valid integer input
     custom = trtl.textinput("Custom Speed", "Enter an integer:")
     while type(custom) is not int:
         try:
@@ -93,6 +162,8 @@ def custom_speed():
     screen.listen()
 screen.onkey(custom_speed, "Return")
 
+# do 10x speed change if they are holding down control/command
+# (depends on if they are on MacOS or Windows)
 ctrl = False
 def ctrl_down():
     global ctrl
@@ -100,19 +171,11 @@ def ctrl_down():
 def ctrl_up():
     global ctrl
     ctrl = False
-screen.onkeypress(ctrl_down, "Control_L")
-screen.onkeyrelease(ctrl_up, "Control_L")
+key_name = "Meta_L" if os.name == "posix" else "Control_L"
+screen.onkeypress(ctrl_down, key_name)
+screen.onkeyrelease(ctrl_up, key_name)
 
-def write_speed(w=False):
-    writer.penup()
-    writer.color("gold")
-    writer.goto(-500, 0)
-    writer.pendown()
-    if not w:
-        writer.clear()
-    writer.write(f"Speed: {simulation_speed}x", align="left", font=("Arial", 12, "normal"))
-    if not w:
-        write_status(True)
+# speed up the simulation
 def speedup():
     global simulation_speed, writing_status
     if writing_status:
@@ -120,6 +183,9 @@ def speedup():
     writing_status = True
     simulation_speed += 1 * (10 if ctrl else 1)
     write_speed()
+screen.onkey(speedup, "Up")
+
+# slow down the simulation
 def slowdown():
     global simulation_speed, writing_status
     if writing_status:
@@ -127,37 +193,13 @@ def slowdown():
     writing_status = True
     simulation_speed -= 1 * (10 if ctrl else 1)
     write_speed()
-screen.onkey(speedup, "Up")
 screen.onkey(slowdown, "Down")
 
-writing_status = False
-def write_status(w=False):
-    global writing_status
-
-    writer.penup()
-    if not w:
-        writer.clear()
-    for i in range(len(planets)):
-        planet = planets[i]
-
-        writer.penup()
-        writer.goto(-500, 150 - (i * 20), )
-        writer.pendown()
-        font = ("Arial", 12, "normal")
-        if planet[7]:
-            writer.color("green")
-            writer.write(f"{planet[0]} [{str(i + 1)}]: On", align="left", font=font)
-        else:
-            writer.color("red")
-            writer.write(f"{planet[0]} [{str(i + 1)}]: Off", align="left", font=font)
-    if not w:
-        write_speed(True)
-    writing_status = False
-
+# adds the event listener for a key
 def add_listener(n):
-    def toggle():
+    def handler():
         global writing_status
-        if writing_status:
+        if writing_status or planets[n][0] in caught_planets:
             return
         if planets[n][7]:
             planets[n][7] = False
@@ -173,21 +215,46 @@ def add_listener(n):
         writing_status = True
         write_status()
 
-    screen.onkey(toggle, str(n + 1))
+    screen.onkey(handler, str(n + 1))
 
-# allow user to enable/disable planets
+# allow user to enable/disable planets using the numbers 1 to length of planets
 for n in range(len(planets)):
     add_listener(n)
 
-# main loop that will go until we have orbited MAX_ORBITS times
+def run_asteroid():
+    global asteroid_enabled
+    if not simulation_running or asteroid_enabled:
+        return
+    asteroid_enabled = True
+    asteroid.showturtle()
+screen.onkey(run_asteroid, "a")
+########################################################
+
+
+
+########################################################
+# MAIN LOOP
+########################################################
+# main loop that will go until we have orbited max_orbits times
 for i in range(360 * MAX_ORBITS):
     angle = i * simulation_speed # changes the speed of the objects
+    orbiting_planets = list.copy(planets)
+
+    if "Sun" in caught_planets:
+        orbiting_planets.append(["Sun", sun, "yellow", None, None, 1, [], False])
 
     # for each planet, move to position calculated from current angle, with the sun as the center
     # using trig functions (FYI, python math only accepts radians, not degrees)
-    for planet in planets:
-        x = planet[3] * sin(radians(angle * planet[5]))
-        y = planet[3] * cos(radians(angle * planet[5]))
+    for j in range(len(orbiting_planets)):
+        planet = orbiting_planets[j]
+        x = None
+        y = None
+        if planet[0] not in caught_planets:
+            x = planet[3] * sin(radians(angle * planet[5]))
+            y = planet[3] * cos(radians(angle * planet[5]))
+        else:
+            x = 75 * sin(radians(angle * planet[5] * 4)) + asteroid.xcor()
+            y = 75 * cos(radians(angle * planet[5] * 4)) + asteroid.ycor()
         planet[1].goto(x, y)
 
         # for each moon of the planet (if any),
@@ -202,10 +269,25 @@ for i in range(360 * MAX_ORBITS):
                 moon[0].showturtle()
         if i == 0:
             planet[1].showturtle()
+
+        if asteroid_enabled:
+            if abs(planet[1].xcor() - asteroid.xcor()) < asteroid_gravity_radius and abs(planet[1].ycor() - asteroid.ycor()) < asteroid_gravity_radius and planet[0] not in caught_planets:
+                caught_planets.append(planet[0])
+                planet[7] = False
+                write_status()
+            elif abs(asteroid.xcor()) < asteroid_gravity_radius and abs(asteroid.ycor()) < asteroid_gravity_radius and "Sun" not in caught_planets:
+                caught_planets.append("Sun")
     # also delete the loading text if this is the first iteration
     if i == 0:
+        simulation_running = True
         writer.clear()
         write_status()
+
+    if asteroid_enabled:
+        asteroid.forward(5 + simulation_speed)
+        if asteroid.xcor() < -400 and asteroid.ycor() < -400:
+            break
+########################################################
 
 # start screen updates
 screen.mainloop()
