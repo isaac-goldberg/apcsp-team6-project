@@ -273,12 +273,14 @@ while True:
         x = None
         y = None
         if planet[0] not in caught_planets:
+            # for when planet is just orbiting the sun
             origin = planet[3]
             if supernova_forming:
                 origin *= (1 - (time_since_supernova / SUPERNOVA_DURATION))
             x = origin * sin(radians(angle * planet[5])) + sun.xcor()
             y = origin * cos(radians(angle * planet[5])) + sun.ycor()
         else:
+            # for when planet is orbiting the asteroid
             origin = 100
             if supernova_forming:
                 origin *= (1 - (time_since_supernova / SUPERNOVA_DURATION))
