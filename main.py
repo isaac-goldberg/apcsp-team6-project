@@ -88,7 +88,7 @@ for planet in planets:
 
 
 # create asteroid
-asteroid_gravity_radius = 50
+asteroid_gravity_radius = 60
 asteroid_enabled = False
 caught_planets = []
 
