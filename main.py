@@ -1,13 +1,17 @@
 import turtle as trtl
 from math import sin, cos, radians
 import os
+import time
 
 # constants
 SUN_RADIUS = 30
-MAX_ORBITS = 100
+SUPERNOVA_DURATION = 50
 
 # globals
 simulation_running = False
+supernova_forming = False
+time_since_supernova = 0
+blackhole_formed = False
 
 # prompt the user for an animation speed,
 # and keep asking them until they give a valid integer input
@@ -38,8 +42,8 @@ writer.write("Loading...", align="center", font=("Arial", 24, "normal"))
 
 # initialize sun turtle,
 # and draw the sun so that its center is in the exact center of the screen
-trtl.register_shape("images/sun.gif")
-sun = trtl.Turtle(shape="images/sun.gif")
+trtl.register_shape("images/Sun.gif")
+sun = trtl.Turtle(shape="images/Sun.gif")
 sun.speed(0)
 sun.color("yellow")
 sun.penup()
@@ -59,6 +63,12 @@ planets = [
 # initialize the turtle objects for each planet
 for planet in planets:
     p = trtl.Turtle(shape="circle")
+    try:
+        s = f"images/{planet[0]}.gif"
+        trtl.register_shape(s)
+        p.shape(s)
+    except:
+        pass
     p.hideturtle()
     p.speed(-100)
     p.penup()
@@ -79,17 +89,24 @@ for planet in planets:
 
 
 # create asteroid
-asteroid_gravity_radius = 60
+asteroid_gravity_radius = 50
 asteroid_enabled = False
 caught_planets = []
 
-trtl.register_shape("images/asteroid.gif")
-asteroid = trtl.Turtle(shape = "images/asteroid.gif")
+trtl.register_shape("images/Asteroid.gif")
+asteroid = trtl.Turtle(shape = "images/Asteroid.gif")
 asteroid.hideturtle()
 asteroid.speed(0)
 asteroid.penup()
 asteroid.goto(250,250)
 asteroid.setheading(225)
+
+# initialize the black hole turtle
+trtl.register_shape("images/Blackhole.gif")
+blackhole = trtl.Turtle("images/Blackhole.gif")
+blackhole.hideturtle()
+blackhole.penup()
+blackhole.speed(0)
 ########################################################
 
 
@@ -100,7 +117,7 @@ asteroid.setheading(225)
 # write the status of each planet on the screen
 writing_status = False
 def write_status(w=False):
-    global writing_status
+    global writing_status, blackhole_formed
 
     writer.penup()
     if not w:
@@ -112,14 +129,16 @@ def write_status(w=False):
         writer.goto(-500, 150 - (i * 20))
         writer.pendown()
         font = ("Arial", 14, "normal")
-        if planet[7]:
+        if planet[7] and not blackhole_formed:
             writer.color("green")
             writer.write(f"{planet[0]} [{str(i + 1)}]: On", align="left", font=font)
         else:
+            text = f"{planet[0]} [{str(i + 1)}]: Off"
+            if blackhole_formed:
+                text = f"{planet[0]}: Demolished in black hole"
             writer.color("red")
-            info = f" - caught in asteroid's gravity!" if planet[0] in caught_planets else ""
-            writer.write(f"{planet[0]} [{str(i + 1)}]: Off{info}", align="left", font=font)
-    if not w:
+            writer.write(text, align="left", font=font)
+    if not w and not blackhole_formed:
         write_speed(True)
     writing_status = False
 
@@ -146,7 +165,11 @@ screen.listen()
 
 # allow custom speed when they press the enter button
 def custom_speed():
-    global simulation_speed
+    global simulation_speed, simulation_running, blackhole_formed
+
+    if not simulation_running or blackhole_formed:
+        return
+
     # prompt the user for a simulation speed, and keep asking
     # until they give a valid integer input
     custom = trtl.textinput("Custom Speed", "Enter an integer:")
@@ -177,8 +200,8 @@ screen.onkeyrelease(ctrl_up, key_name)
 
 # speed up the simulation
 def speedup():
-    global simulation_speed, writing_status
-    if writing_status:
+    global simulation_speed, writing_status, blackhole_formed
+    if writing_status or blackhole_formed:
         return
     writing_status = True
     simulation_speed += 1 * (10 if ctrl else 1)
@@ -187,8 +210,8 @@ screen.onkey(speedup, "Up")
 
 # slow down the simulation
 def slowdown():
-    global simulation_speed, writing_status
-    if writing_status:
+    global simulation_speed, writing_status, blackhole_formed
+    if writing_status or blackhole_formed:
         return
     writing_status = True
     simulation_speed -= 1 * (10 if ctrl else 1)
@@ -198,8 +221,8 @@ screen.onkey(slowdown, "Down")
 # adds the event listener for a key
 def add_listener(n):
     def handler():
-        global writing_status
-        if writing_status or planets[n][0] in caught_planets:
+        global writing_status, blackhole_formed
+        if writing_status or blackhole_formed:
             return
         if planets[n][7]:
             planets[n][7] = False
@@ -235,8 +258,9 @@ screen.onkey(run_asteroid, "a")
 ########################################################
 # MAIN LOOP
 ########################################################
-# main loop that will go until we have orbited max_orbits times
-for i in range(360 * MAX_ORBITS):
+# main loop that will go forever until asteroid wrecks everything
+i = 0
+while True:
     angle = i * simulation_speed # changes the speed of the objects
     orbiting_planets = list.copy(planets)
 
@@ -250,11 +274,17 @@ for i in range(360 * MAX_ORBITS):
         x = None
         y = None
         if planet[0] not in caught_planets:
-            x = planet[3] * sin(radians(angle * planet[5]))
-            y = planet[3] * cos(radians(angle * planet[5]))
+            origin = planet[3]
+            if supernova_forming:
+                origin *= (1 - (time_since_supernova / SUPERNOVA_DURATION))
+            x = origin * sin(radians(angle * planet[5])) + sun.xcor()
+            y = origin * cos(radians(angle * planet[5])) + sun.ycor()
         else:
-            x = 75 * sin(radians(angle * planet[5] * 4)) + asteroid.xcor()
-            y = 75 * cos(radians(angle * planet[5] * 4)) + asteroid.ycor()
+            origin = 100
+            if supernova_forming:
+                origin *= (1 - (time_since_supernova / SUPERNOVA_DURATION))
+            x = origin * sin(radians(angle * planet[5] * 4)) + asteroid.xcor()
+            y = origin * cos(radians(angle * planet[5] * 4)) + asteroid.ycor()
         planet[1].goto(x, y)
 
         # for each moon of the planet (if any),
@@ -267,26 +297,40 @@ for i in range(360 * MAX_ORBITS):
             # if this is the first iteration, reveal all the planets and moons
             if i == 0:
                 moon[0].showturtle()
+            elif time_since_supernova >= SUPERNOVA_DURATION:
+                moon[0].hideturtle()
         if i == 0:
             planet[1].showturtle()
+        elif time_since_supernova >= SUPERNOVA_DURATION:
+            planet[1].hideturtle()
 
         if asteroid_enabled:
             if abs(planet[1].xcor() - asteroid.xcor()) < asteroid_gravity_radius and abs(planet[1].ycor() - asteroid.ycor()) < asteroid_gravity_radius and planet[0] not in caught_planets:
                 caught_planets.append(planet[0])
-                planet[7] = False
-                write_status()
             elif abs(asteroid.xcor()) < asteroid_gravity_radius and abs(asteroid.ycor()) < asteroid_gravity_radius and "Sun" not in caught_planets:
                 caught_planets.append("Sun")
+                supernova_forming = True
     # also delete the loading text if this is the first iteration
     if i == 0:
         simulation_running = True
         writer.clear()
         write_status()
+    elif time_since_supernova >= SUPERNOVA_DURATION:
+        blackhole.goto(asteroid.xcor(), asteroid.ycor())
+        asteroid.hideturtle()
+        blackhole.showturtle()
+        break
 
     if asteroid_enabled:
-        asteroid.forward(5 + simulation_speed)
-        if asteroid.xcor() < -400 and asteroid.ycor() < -400:
-            break
+        asteroid.forward(5 + min(max(simulation_speed, 0), 8))
+    if supernova_forming:
+        time_since_supernova += 1
+    i += 1
+
+# write status again now that supernova has exploded
+simulation_running = False
+blackhole_formed = True
+write_status()
 ########################################################
 
 # start screen updates
