@@ -323,7 +323,7 @@ while True:
         break
 
     if asteroid_enabled:
-        asteroid.forward(5)
+        asteroid.forward(8)
     if supernova_forming:
         time_since_supernova += 1
     i += 1
