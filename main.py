@@ -56,7 +56,7 @@ planets = [
     ["Earth", None, "green", 145, 1.75, 0.75, [[None, 30, 0.6, 3]]],
     ["Mars", None, "orange", 200, 1.2, 0.5, [[None, 25, 0.5, 4], [None, 40, 0.4, 2]]],
     ["Jupiter", None, "#c7a06d", 270, 2.75, 0.25, [[None, 35, 0.2, 0.7], [None, 45, 0.3, -1], [None, 55, 0.4, 1.25]]],
-    ["Neptune", None, "blue", 325, 0.8, 0.1, []]
+    ["Neptune", None, "blue", 325, 1.8, 0.1, []]
 ]
 
 # initialize the turtle objects for each planet
